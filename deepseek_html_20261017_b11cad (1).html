@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>اختبار التربية الإسلامية للأبطال 🌟</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+    body {
+        font-family: 'Cairo', sans-serif;
+        background-color: #f0fdf4;
+        background-image: radial-gradient(#10b981 0.8px, transparent 0.8px), radial-gradient(#10b981 0.8px, #f0fdf4 0.8px);
+        background-size: 28px 28px;
+        background-position: 0 0, 14px 14px;
+    }
+    .islamic-card {
+        background: #ffffff;
+        border-top: 6px solid #10b981;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+    .quran-text { font-family: 'Cairo', serif; line-height: 2.8; }
+
+    /* ===== Blank answer control ===== */
+    .blank-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        min-width: 7.5rem;
+        height: 3rem;
+        margin: 0 .25rem;
+        padding: 0 .5rem;
+        border: 3px dashed #6ee7b7;
+        border-radius: 14px;
+        background: #ffffff;
+        transition: all .15s ease-in-out;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+        cursor: pointer;
+        position: relative;
+    }
+    .blank-btn:hover  { border-color: #10b981; background: #ecfdf5; }
+    .blank-btn.filled { border-style: solid; border-color: #10b981; background: #f0fdf4; }
+    .blank-btn.correct{ border-style: solid; border-color: #059669; background: #ecfdf5; }
+    .blank-btn.wrong  { border-style: solid; border-color: #dc2626; background: #fef2f2; }
+    .blank-btn.pending{ border-style: solid; border-color: #f59e0b; background: #fffbeb; }
+
+    /* ===== Modal Tabs ===== */
+    .tab-btn { flex: 1; padding: 0.6rem; font-weight: 900; border-radius: 0.75rem; border: 2px solid transparent; transition: all 0.2s; color: #047857; }
+    .tab-btn.active { background: #10b981; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    
+    /* ===== Drawing pad tools ===== */
+    .pad-tool {
+        padding: .45rem .85rem; border-radius: .9rem; border: 2px solid #d1d5db;
+        background: #fff; font-weight: 900; font-size: .8rem; transition: all .15s;
+    }
+    .pad-tool.active { background: #059669; color: #fff; border-color: #059669; }
+    #padCanvas { touch-action: none; -webkit-user-select: none; user-select: none; }
+
+    @media print {
+        body * { visibility: hidden; }
+        #printableCertificate, #printableCertificate * { visibility: visible; }
+        #printableCertificate { position: absolute; left: 0; top: 0; width: 100%; border-width: 6px; }
+        .no-print { display: none !important; }
+    }
+</style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col justify-between selection:bg-emerald-200 selection:text-emerald-900">
+
+<!-- ================= HEADER ================= -->
+<header class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <div class="w-12 h-12 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-2xl shadow-md transform rotate-3">
+                <i class="fa-solid fa-star-and-crescent"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black leading-tight">اختبار أبطال التربية الإسلامية 🌟</h1>
+                <p class="text-xs md:text-sm text-emerald-100 font-bold">الصف الثاني والثالث الابتدائي - كتابة واستظهار</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 space-x-reverse">
+            <button id="soundToggle" onclick="toggleAudio()" class="p-2.5 rounded-2xl bg-emerald-800/60 hover:bg-emerald-800 text-amber-300 transition-colors shadow-inner" title="الصوت">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-xl"></i>
+            </button>
+            <button onclick="confirmReset()" class="p-2.5 rounded-2xl bg-emerald-800/60 hover:bg-red-500 text-white transition-colors shadow-inner" title="إعادة التقييم">
+                <i class="fa-solid fa-rotate-right text-xl"></i>
+            </button>
+        </div>
+    </div>
+    <div class="w-full bg-emerald-950/40 h-3">
+        <div id="quizProgressBar" class="bg-amber-400 h-3 transition-all duration-300 ease-out" style="width: 0%"></div>
+    </div>
+</header>
+
+<!-- ================= MAIN ================= -->
+<main class="max-w-4xl mx-auto px-4 py-6 flex-grow w-full">
+
+    <section class="mb-6 bg-white rounded-3xl p-5 shadow-sm border-2 border-emerald-100 flex flex-col xl:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-4 space-x-reverse">
+            <div class="bg-amber-100 p-3.5 rounded-2xl text-amber-600 flex-shrink-0 text-3xl">✏️</div>
+            <div>
+                <h2 class="text-base md:text-lg font-black text-emerald-900">أهلاً بك يا بطل! اكتب إجاباتك بإصبعك أو قلمك</h2>
+                <p class="text-xs md:text-sm text-gray-600 font-semibold">اضغط على أي مربّع منقّط ✍️ لتفتح لوحة الكتابة، أو اختر الإجابة الصحيحة.</p>
+            </div>
+        </div>
+
+        <!-- 3 Tabs -->
+        <div class="flex bg-emerald-50 p-2 rounded-2xl w-full xl:w-auto text-[11px] md:text-sm font-black border border-emerald-200 overflow-x-auto">
+            <button id="tabPart1" onclick="switchPart(1)" class="flex-1 md:flex-none px-3 py-2.5 rounded-xl transition-all bg-emerald-600 text-white shadow-md whitespace-nowrap">
+                مراجعة ١
+            </button>
+            <button id="tabPart2" onclick="switchPart(2)" class="flex-1 md:flex-none px-3 py-2.5 rounded-xl transition-all text-emerald-800 hover:bg-emerald-100 whitespace-nowrap">
+                مراجعة ٢
+            </button>
+            <button id="tabPart3" onclick="switchPart(3)" class="flex-1 md:flex-none px-3 py-2.5 rounded-xl transition-all text-emerald-800 hover:bg-emerald-100 whitespace-nowrap">
+                امتحان أكتوبر 📝
+            </button>
+        </div>
+    </section>
+
+    <div id="quizContent" class="space-y-8"></div>
+
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-lg">
+        <div class="text-sm md:text-base font-bold text-emerald-900 flex items-center space-x-2 space-x-reverse">
+            <i class="fa-solid fa-pen-ruler text-emerald-600 text-xl"></i>
+            <span>تم كتابة وحل <span id="answeredCount" class="text-amber-600 font-black text-lg">0</span> من <span id="totalQuestionsCount" class="font-black text-lg">0</span> سؤال</span>
+        </div>
+
+        <button id="submitBtn" onclick="calculateScore()" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center space-x-2 space-x-reverse text-lg">
+            <i class="fa-solid fa-check-double text-xl"></i>
+            <span>تصحيح الامتحان وعرض النتيجة 📝</span>
+        </button>
+    </div>
+</main>
+
+<!-- ================= ANSWER MODAL ================= -->
+<div id="answerModal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-md z-[60] hidden items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-white rounded-3xl w-full max-w-lg p-4 md:p-5 shadow-2xl border-4 border-emerald-300 my-6">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="font-black text-emerald-900 text-base md:text-lg flex items-center gap-2">
+                <i class="fa-solid fa-pen-fancy text-amber-500"></i>
+                <span>أجب على السؤال</span>
+            </h3>
+            <button type="button" onclick="closePad()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black">✕</button>
+        </div>
+
+        <!-- Parent Disclaimer -->
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 mb-3 text-xs md:text-sm text-blue-900 font-bold leading-relaxed shadow-sm">
+            <div class="flex items-start gap-2">
+                <i class="fa-solid fa-lightbulb text-blue-600 text-lg mt-0.5"></i>
+                <div>
+                    <span class="font-black text-blue-800">نصيحة لأولياء الأمور:</span> 
+                    نوصي بشدة باختيار <span class="bg-blue-200 px-1 rounded">الكتابة اليدوية</span> لمساعدة طفلك على التدرب على الكتابة كما في الامتحان الورقي الحقيقي. 
+                    <br><br>
+                    <span class="text-[11px] text-blue-700">
+                        💡 <b>أدوات مقترحة للكتابة من المنزل:</b> إصبع الطفل، قلم الشاشة (Stylus)، أو حتى استخدام أعواد تنظيف الأذن (قطن) أو قلم تحديد بلاستيكي مغلق كقلم بديل!
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
+            <button id="tabWrite" onclick="switchAnswerTab('write')" class="tab-btn active">✍️ اكتب بيدك</button>
+            <button id="tabChoose" onclick="switchAnswerTab('choose')" class="tab-btn">🔘 اختر الإجابة</button>
+        </div>
+
+        <!-- Hint -->
+        <p id="padHint" class="hidden text-xs md:text-sm font-black text-amber-800 bg-amber-50 border-2 border-amber-200 rounded-xl px-3 py-2 mb-2"></p>
+
+        <!-- Tab 1: Handwriting -->
+        <div id="writeArea">
+            <div class="relative">
+                <canvas id="padCanvas" class="w-full h-48 md:h-56 rounded-2xl border-4 border-emerald-200 bg-white block"></canvas>
+                <div id="padPlaceholder" class="absolute inset-0 flex items-center justify-center text-emerald-200 font-black text-xl md:text-2xl pointer-events-none select-none">
+                    اكتب هنا ✏️
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+                <button type="button" data-tool="pen" onclick="setPadTool('pen')" class="pad-tool active">✏️ قلم</button>
+                <button type="button" data-tool="eraser" onclick="setPadTool('eraser')" class="pad-tool">🧽 ممحاة</button>
+                <button type="button" onclick="undoStroke()" class="pad-tool">↩️ تراجع</button>
+                <button type="button" onclick="clearPad()" class="pad-tool">🗑️ مسح الكل</button>
+            </div>
+
+            <div class="mt-2">
+                <label for="padTextInput" class="block text-xs font-black text-gray-500 mb-1">أو اكتب بالكيبورد (إن أردت):</label>
+                <input id="padTextInput" type="text" dir="rtl" autocomplete="off" placeholder="اكتب الكلمة هنا..."
+                       class="w-full text-center px-3 py-2 border-2 border-emerald-300 rounded-xl font-black text-base text-emerald-900 bg-emerald-50 focus:outline-none focus:border-emerald-600">
+            </div>
+        </div>
+
+        <!-- Tab 2: Choices -->
+        <div id="chooseArea" class="hidden space-y-3 mt-4">
+            <div id="padChoicesContainer" class="grid grid-cols-1 gap-2"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 mt-4 pt-2 border-t border-gray-100">
+            <button id="saveAnswerBtn" type="button" onclick="savePad()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow text-base flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i><span>حفظ الإجابة</span>
+            </button>
+            <button type="button" onclick="closePad()" class="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black rounded-2xl text-base">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= RESULT MODAL ================= -->
+<div id="resultModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div id="printableCertificate" class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative my-8 border-8 border-amber-300">
+        <button onclick="closeModal()" class="no-print absolute top-4 left-4 w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full flex items-center justify-center font-bold text-xl transition-colors">✕</button>
+
+        <div class="text-center space-y-4">
+            <div class="inline-block p-4 bg-amber-50 rounded-full border-4 border-amber-300 mb-1">
+                <i id="badgeIcon" class="fa-solid fa-trophy text-6xl text-amber-500"></i>
+            </div>
+
+            <h2 class="text-3xl md:text-4xl font-black text-emerald-900">شهادة بطل التربية الإسلامية 📜</h2>
+            <p class="text-sm font-extrabold text-amber-700">اختبار استظهار القرآن الكريم والكتابة الصحيحة</p>
+
+            <div class="max-w-md mx-auto my-3">
+                <label for="studentNameInput" class="block text-sm font-bold text-gray-600 mb-1">اسم البطل / البطلة:</label>
+                <input type="text" id="studentNameInput" placeholder="اكتب اسمك الثلاثي هنا..." class="w-full text-center px-4 py-3 border-2 border-emerald-400 rounded-2xl font-black text-xl text-emerald-900 bg-emerald-50 focus:outline-none focus:border-emerald-600">
+            </div>
+
+            <div class="bg-gradient-to-br from-emerald-50 via-teal-50 to-amber-50 border-2 border-emerald-300 rounded-3xl p-6 max-w-md mx-auto my-4 shadow-sm">
+                <div class="text-sm font-black text-emerald-800 uppercase tracking-wider mb-1">النتيجة النهائية</div>
+                <div id="scorePercentage" class="text-5xl md:text-6xl font-black text-emerald-600 mb-2">0%</div>
+                <div class="text-base font-black text-gray-700">
+                    حصلت على <span id="correctScoreCount" class="font-black text-emerald-700 text-xl">0</span> من <span id="maxScoreCount" class="font-bold text-xl">0</span> نقطة
+                </div>
+                <p id="feedbackText" class="mt-3 text-sm md:text-base font-black py-2.5 px-4 rounded-2xl shadow-sm">ممتاز! بارك الله فيك 🌟</p>
+            </div>
+
+            <div id="sectionBreakdown" class="text-right text-xs md:text-sm bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-2 max-w-md mx-auto"></div>
+
+            <!-- Handwriting self-review -->
+            <div id="manualReviewSection" class="hidden text-right max-w-md mx-auto w-full">
+                <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 space-y-3">
+                    <h4 class="font-black text-amber-900 text-sm md:text-base flex items-center gap-2">
+                        <i class="fa-solid fa-hand-pointer"></i>
+                        <span>راجع إجاباتك المكتوبة باليد (قارنها بالنموذج)</span>
+                    </h4>
+                    <div id="manualReviewList" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div class="no-print flex flex-wrap justify-center gap-3 pt-3">
+                <button onclick="window.print()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-2xl shadow transition-all flex items-center space-x-2 space-x-reverse text-base">
+                    <i class="fa-solid fa-print"></i><span>طباعة الشهادة 🗄️</span>
+                </button>
+                <button onclick="closeModal()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow transition-all flex items-center space-x-2 space-x-reverse text-base">
+                    <i class="fa-solid fa-eye"></i><span>مراجعة الإجابات والتصحيح 🔍</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= LOGIC ================= -->
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+let currentPart   = 1;
+let isEvaluated   = false;
+let audioEnabled  = true;
+let celebrated    = false;
+
+let choiceAnswers = {};   // qId  -> option index (mcq) | boolean (tf)
+let writeAnswers  = {};   // blankId -> { text, strokes, image }
+let manualReview  = {};   // blankId -> true | false
+let blankMeta     = {};   // blankId -> { label, hint, answer, choices }
+let lastResults   = null;
+
+/* =========================================================
+   AUDIO
+   ========================================================= */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playSound(type) {
+    if (!audioEnabled) return;
+    try {
+        initAudio();
+        const now = audioCtx.currentTime;
+
+        if (type === 'click') {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(660, now);
+            g.gain.setValueAtTime(0.06, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            o.start(now); o.stop(now + 0.1);
+            return;
+        }
+
+        if (type === 'correct') {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(523.25, now);
+            o.frequency.exponentialRampToValueAtTime(659.25, now + 0.1);
+            o.frequency.exponentialRampToValueAtTime(783.99, now + 0.2);
+            g.gain.setValueAtTime(0.25, now);
+            g.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+            o.start(now); o.stop(now + 0.35);
+        } else if (type === 'incorrect') {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(220, now);
+            o.frequency.setValueAtTime(174.61, now + 0.15);
+            g.gain.setValueAtTime(0.22, now);
+            g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            o.start(now); o.stop(now + 0.3);
+        } else if (type === 'fanfare') {
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.frequency.value = freq;
+                g.gain.setValueAtTime(0.18, now + idx * 0.1);
+                g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+                o.start(now + idx * 0.1); o.stop(now + idx * 0.1 + 0.3);
+            });
+        }
+    } catch (e) { console.log(e); }
+}
+
+function toggleAudio() {
+    audioEnabled = !audioEnabled;
+    document.getElementById('soundIcon').className =
+        audioEnabled ? 'fa-solid fa-volume-high text-xl' : 'fa-solid fa-volume-xmark text-xl text-red-300';
+}
+
+/* =========================================================
+   TEXT HELPERS
+   ========================================================= */
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function normalizeArabic(text) {
+    if (!text) return '';
+    return text
+        .replace(/[\u064B-\u0652\u0670\u0640]/g, '')
+        .replace(/[أإآٱ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/[.,!?؟،؛:«»"'()]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/* =========================================================
+   QUIZ DATA (Updated with choices for text_fill)
+   ========================================================= */
+const quizData = {
+    part1: {
+        title: "مراجعة الكتاب المدرسي - الصف الثالث الابتدائي",
+        sections: [
+            { sectionTitle: "العقيدة", questions: [
+                { id:"p1_aq_1", type:"mcq", question:"١- معنى اسم الله (السميع) هو الذي ...............", options:["يسمع كل شيء","يرى كل شيء","يعلم الخافية"], answer:0, modelAns:"يسمع كل شيء" },
+                { id:"p1_aq_2", type:"mcq", question:"٢- يسمع الله (تعالى) دعاءنا ...............", options:["سرًا فقط","علانية فقط","سرًا وعلانية"], answer:2, modelAns:"سرًا وعلانية" },
+                { id:"p1_aq_3", type:"mcq", question:"٣- مراقبة الله عز وجل تدعونا إلى ...............", options:["فعل الخير","الامتناع عن الشر","جميع ما سبق"], answer:2, modelAns:"جميع ما سبق" }
+            ]},
+            { sectionTitle: "القرآن والتفسير (سورة القدر)", questions: [
+                { id:"p1_qr_1", type:"text_fill",
+                  title:"أ) اكتب الكلمات المفقودة من سورة القدر بخط يدك:",
+                  template:"إِنَّا أَنزَلْنَاهُ فِي لَيْلَةِ {0} (1) وَمَا أَدْرَاكَ مَا لَيْلَةُ {1} (2) لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ {2} شَهْرٍ (3) تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ {3} مِّن كُلِّ أَمْرٍ (4) سَلَامٌ هِيَ حَتَّىٰ {4} الْفَجْرِ (5)",
+                  blanks:[
+                    { answer:"القدر", hint:"تبدأ بأل التعريف (الـ...)", choices:["القدر", "الفاتحة", "العلق"] },
+                    { answer:"القدر", hint:"اسم السورة المباركة", choices:["القدر", "الفاتحة", "العلق"] },
+                    { answer:"ألف",   hint:"عدد (١٠٠٠)", choices:["ألف", "مائة", "عشرة"] },
+                    { answer:"ربهم",  hint:"خالقهم ومالكهم", choices:["ربهم", "نفسهم", "غيرهم"] },
+                    { answer:"مطلع",  hint:"بداية شروق الفجر", choices:["مطلع", "مغرب", "مشرق"] }
+                  ]},
+                { id:"p1_qr_2", type:"mcq", question:"ب) ١- نزل القرآن الكريم في شهر ...............", options:["رجب","رمضان","شوال"], answer:1, modelAns:"رمضان" },
+                { id:"p1_qr_3", type:"mcq", question:"٢- المقصود بـ (الروح) في سورة القدر هو الملك ...............", options:["جبريل","ميكائيل","إسرافيل"], answer:0, modelAns:"جبريل" },
+                { id:"p1_qr_4", type:"mcq", question:"٣- العبادة في ليلة القدر أفضل من عبادة ...............", options:["شهر","عام","ألف شهر"], answer:2, modelAns:"ألف شهر" },
+                { id:"p1_qr_5", type:"mcq", question:"٤- تبدأ ليلة القدر من أذان ............... حتى طلوع الفجر.", options:["العصر","المغرب","الفجر"], answer:1, modelAns:"المغرب" }
+            ]},
+            { sectionTitle: "العبادات", questions: [
+                { id:"p1_ib_1", type:"tf", question:"١- الأذان يذكرنا بالصلاة.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p1_ib_2", type:"tf", question:"٢- الأذان دعوة للصلاة.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p1_ib_3", type:"tf", question:"٣- الأذان خمس مرات في اليوم.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p1_ib_4", type:"tf", question:"٤- يبدأ الأذان بقول: «حي على الصلاة».", answer:false, modelAns:"خطأ (❌) - يبدأ بـ (الله أكبر)" }
+            ]},
+            { sectionTitle: "السير والشخصيات", questions: [
+                { id:"p1_se_1", type:"mcq", question:"١- نزل الوحي على النبي ﷺ أول مرة ...............", options:["عند الكعبة","في غار حراء","في البيت"], answer:1, modelAns:"في غار حراء" },
+                { id:"p1_se_2", type:"mcq", question:"٢- أول كلمة نزلت من القرآن هي ...............", options:["كَبِّرْ","اقْرَأْ","سَبِّحْ"], answer:1, modelAns:"اقْرَأْ" },
+                { id:"p1_se_3", type:"mcq", question:"٣- كان قوم مدين يعملون في ...............", options:["الزراعة","الصناعة","التجارة"], answer:2, modelAns:"التجارة" },
+                { id:"p1_se_4", type:"mcq", question:"٤- أرسل الله ﷻ على قوم مدين ...............", options:["مطرًا","صَيْحَةً","قبضات"], answer:1, modelAns:"صَيْحَةً" }
+            ]},
+            { sectionTitle: "القيم والأخلاق", questions: [
+                { id:"p1_va_1", type:"tf", question:"١- المسلم يأخذ بالأسباب ويتوكل على الله.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p1_va_2", type:"tf", question:"٢- التوكل يجعل الإنسان خائفًا.", answer:false, modelAns:"خطأ (❌)" },
+                { id:"p1_va_3", type:"tf", question:"٣- التواكل ليس من صفات المؤمنين.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p1_va_4", type:"tf", question:"٤- التوكل عبادة يحبها الله (تعالى).", answer:true,  modelAns:"صواب (✔️)" }
+            ]}
+        ]
+    },
+    part2: {
+        title: "مراجعة سلاح التلميذ - الصف الثالث الابتدائي",
+        sections: [
+            { sectionTitle: "العقيدة", questions: [
+                { id:"p2_aq_1", type:"mcq", question:"١- اسم الله الذي يدل على أنه يسمع كل شيء هو ...............", options:["السميع","الرحيم","الخالق"], answer:0, modelAns:"السميع" },
+                { id:"p2_aq_2", type:"mcq", question:"٢- يسمع الله دعاء عباده في ...............", options:["النهار فقط","الليل فقط","جميع الأوقات"], answer:2, modelAns:"جميع الأوقات" },
+                { id:"p2_aq_3", type:"mcq", question:"٣- الإيمان باسم الله (السميع) يجعلنا ...............", options:["نؤذي غيرنا","نتكلم بالخير","نخاف من الآخرين"], answer:1, modelAns:"نتكلم بالخير" }
+            ]},
+            { sectionTitle: "القرآن والتفسير (سورة القدر)", questions: [
+                { id:"p2_qr_wordbank", type:"text_fill",
+                  title:"أ) اكتب الكلمات المفقودة في الآيات الكريمة بنفسك:",
+                  template:"١- إِنَّا أَنزَلْنَاهُ فِي لَيْلَةِ {0}\n٢- لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ {1} شَهْرٍ\n٣- تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ {2}\n٤- سَلَامٌ هِيَ حَتَّىٰ {3} الْفَجْرِ",
+                  blanks:[
+                    { answer:"القدر", hint:"ليلة مباركة", choices:["القدر", "الفاتحة", "العلق"] },
+                    { answer:"ألف",   hint:"عدد (١٠٠٠)", choices:["ألف", "مائة", "عشرة"] },
+                    { answer:"ربهم",  hint:"الله تعالى", choices:["ربهم", "نفسهم", "غيرهم"] },
+                    { answer:"مطلع",  hint:"شروق الفجر", choices:["مطلع", "مغرب", "مشرق"] }
+                  ]},
+                { id:"p2_qr_mcq_1", type:"mcq", question:"ب) ١- أنزل الله القرآن الكريم في ليلة ...............", options:["القدر","العيد","الجمعة"], answer:0, modelAns:"القدر" },
+                { id:"p2_qr_mcq_2", type:"mcq", question:"٢- ليلة القدر تكون في شهر ...............", options:["رجب","شعبان","رمضان"], answer:2, modelAns:"رمضان" },
+                { id:"p2_qr_mcq_3", type:"mcq", question:"٣- ليلة القدر خير من ...............", options:["عشرة أشهر","مائة شهر","ألف شهر"], answer:2, modelAns:"ألف شهر" }
+            ]},
+            { sectionTitle: "العبادات", questions: [
+                { id:"p2_ib_1", type:"tf", question:"١- الأذان إعلام بدخول وقت الصلاة.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p2_ib_2", type:"tf", question:"٢- الأذان يكون بعد الصلاة.", answer:false, modelAns:"خطأ (❌)" },
+                { id:"p2_ib_3", type:"tf", question:"٣- نُرَدِّدُ الأذانَ مع المُؤَذِّنِ.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p2_ib_4", type:"tf", question:"٤- يبدأ الأذان بقول: (الله أكبر).", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p2_ib_5", type:"tf", question:"٥- يُشْتَرَطُ اللَّعِبُ عندَ سَمَاعِ الأذانِ.", answer:false, modelAns:"خطأ (❌)" }
+            ]},
+            { sectionTitle: "السير والشخصيات", questions: [
+                { id:"p2_se_1", type:"mcq", question:"١- نزل الوحي على النبي ﷺ أول مرة في ...............", options:["غار حراء","المسجد","البيت"], answer:0, modelAns:"غار حراء" },
+                { id:"p2_se_2", type:"mcq", question:"٢- أول ما نزل من القرآن الكريم آيات من سورة ...............", options:["الفاتحة","العلق","الناس"], answer:1, modelAns:"العلق" },
+                { id:"p2_se_3", type:"mcq", question:"٣- الملك الذي نزل بالوحي هو ...............", options:["جبريل","ميكائيل","إسرافيل"], answer:0, modelAns:"جبريل" },
+                { id:"p2_se_4", type:"mcq", question:"٤- أرسل الله نبيه شعيبًا إلى قوم ...............", options:["ثمود","عاد","مدين"], answer:2, modelAns:"مدين" },
+                { id:"p2_se_5", type:"mcq", question:"٥- اشتهر قوم شعيب بـ ...............", options:["الغش","الصدق","الأمانة"], answer:0, modelAns:"الغش" }
+            ]},
+            { sectionTitle: "القيم والأخلاق - الحديث الشريف والتواكل", questions: [
+                { id:"p2_va_tf_1", type:"tf", question:"١- التَّوَكُّلُ عَلَى اللهِ ﷻ خُلُقٌ حَسَنٌ.", answer:true,  modelAns:"صواب (✔️)" },
+                { id:"p2_va_tf_2", type:"tf", question:"٢- التَّوَكُّلُ يَعْنِي تَرْكَ الْعَمَلِ.", answer:false, modelAns:"خطأ (❌) - التوكل يكون مع العمل والأخذ بالأسباب" },
+                { id:"p2_va_tf_3", type:"tf", question:"٣- الْمُؤْمِنُ يَتَوَكَّلُ عَلَى اللهِ ﷻ دَائِمًا.", answer:true, modelAns:"صواب (✔️)" },
+                { id:"p2_va_tf_4", type:"tf", question:"٤- نَأْخُذُ بِالأَسْبَابِ وَنَتَوَكَّلُ عَلَى اللهِ ﷻ.", answer:true, modelAns:"صواب (✔️)" },
+                { id:"p2_va_tf_5", type:"tf", question:"٥- التَّوَاكُلُ مِنْ صِفَاتِ الْمُؤْمِنِ.", answer:false, modelAns:"خطأ (❌) - التواكل خلق غير محمود" },
+                { id:"p2_va_tf_6", type:"tf", question:"٦- التَّوَكُّلُ يَجْعَلُ الإِنْسَانَ خَائِفًا دَائِمًا.", answer:false, modelAns:"خطأ (❌) - التوكل يمنح الطمأنينة" },
+                { id:"p2_hadith_fill", type:"text_fill",
+                  title:"ب) أكمل الكلمات المفقودة من الحديث الشريف بخط يدك:",
+                  template:"• قَالَ رَسُولُ اللَّهِ ﷺ: « لَوْ أَنَّكُمْ {0} عَلَى اللَّهِ حَقَّ تَوَكُّلِهِ لَرَزَقَكُمْ كَمَا يَرْزُقُ {1} ، تَغْدُو خِمَاصًا وَتَرُوحُ {2} ».",
+                  blanks:[
+                    { answer:"تتوكلون", hint:"فعل يعني تعتمدون على الله", choices:["تتوكلون", "تتوكل", "يتوكلون"] },
+                    { answer:"الطير",   hint:"مخلوقات تطير في السماء", choices:["الطير", "الأسد", "الفرس"] },
+                    { answer:"بطانا",   hint:"شبعانة ممتلئة البطون", choices:["بطانا", "جياعا", "عطاشا"] }
+                  ]}
+            ]}
+        ]
+    },
+    part3: {
+        title: "امتحان (٣) شهر أكتوبر - دين إسلامي (٢٠٢٦ / ٢٠٢٧)",
+        sections: [
+            { sectionTitle: "السؤال الأول: املأ الفراغ فيما يلي", questions: [
+                { id:"p3_q1_a", type:"text_fill",
+                  title:"أ) اكتب الكلمات المحذوفة في مكانها المناسب في السورة الكريمة:",
+                  template:"قَالَ تَعَالَى: ﴿ إِنَّا أَنزَلْنَاهُ فِي {0} الْقَدْرِ (١) وَمَا أَدْرَاكَ مَا لَيْلَةُ الْقَدْرِ (٢) لَيْلَةُ الْقَدْرِ خَيْرٌ مِّنْ أَلْفِ {1} (٣) تَنَزَّلُ الْمَلَائِكَةُ وَالرُّوحُ فِيهَا بِإِذْنِ رَبِّهِم مِّن كُلِّ أَمْرٍ (٤) سَلَامٌ هِيَ حَتَّىٰ مَطْلَعِ {2} (٥) ﴾",
+                  blanks:[
+                    { answer:"لَيْلَةِ", hint:"تبدأ بلام مكسورة", choices:["لَيْلَةِ", "يَوْمِ", "سَنَةِ"] },
+                    { answer:"شَهْرٍ", hint:"جمعها شهور", choices:["شَهْرٍ", "يَوْمٍ", "عَامٍ"] },
+                    { answer:"الْفَجْرِ", hint:"وقت صلاة الصبح", choices:["الْفَجْرِ", "الْعَصْرِ", "الْمَغْرِبِ"] }
+                  ]},
+                { id:"p3_q1_b1", type:"mcq", question:"ب) ١- معنى «القدر» ...............", options:["الشرف","المال","القوة"], answer:0, modelAns:"الشرف" },
+                { id:"p3_q1_b2", type:"mcq", question:"ب) ٢- نزل في ليلة القدر ...............", options:["فرض الصلاة","القرآن الكريم","فرض الزكاة"], answer:1, modelAns:"القرآن الكريم" },
+                { id:"p3_q1_c", type:"text_fill",
+                  title:"ج) أكمل:",
+                  template:"تَتَنَزَّلُ {0} في ليلة القدر بالرحمة والبركة بأمر الله تعالى.",
+                  blanks:[
+                    { answer:"الْمَلَائِكَةُ", hint:"مخلوقات نورانية", choices:["الْمَلَائِكَةُ", "الشَّيَاطِينُ", "النَّاسُ"] }
+                  ]},
+                { id:"p3_q1_d", type:"text_fill",
+                  title:"د) ما أفضل ليلة في السنة ؟ ولماذا ؟",
+                  template:"أفضل ليلة في السنة هي ليلة {0} ، وهي أفضل لأن العبادة فيها خير من {1}.",
+                  blanks:[
+                    { answer:"القدر", hint:"ليلة مباركة", choices:["القدر", "الجمعة", "العيد"] },
+                    { answer:"ألف شهر", hint:"عدد كبير جداً من الشهور", choices:["ألف شهر", "مائة شهر", "عشرة أشهر"] }
+                  ]}
+            ]},
+            { sectionTitle: "السؤال الثاني: اختر الإجابة الصحيحة مما بين القوسين", questions: [
+                { id:"p3_q2_1", type:"mcq", question:"١- الذي يسمع أصواتنا من معاني اسم الله ...............", options:["الشكور","السميع","البصير"], answer:1, modelAns:"السميع" },
+                { id:"p3_q2_2", type:"mcq", question:"٢- أخبر ............... النَّبِيِّ (ﷺ) أَنَّهُ نَبِيُّ هَذِهِ الأُمَّةِ", options:["أبو بكر الصديق","ورقة بن نوفل","حمزة بن عبد المطلب"], answer:1, modelAns:"ورقة بن نوفل" },
+                { id:"p3_q2_3", type:"mcq", question:"٣- يُسَمَّى مَنْ يُنَادِي لِلصَّلَاةِ ...............", options:["المؤذن","الإمام","الخطيب"], answer:0, modelAns:"المؤذن" },
+                { id:"p3_q2_4", type:"mcq", question:"٤- كَانَ قَوْمُ مَدْيَنَ يَعْبُدُونَ ...............", options:["الله تعالى","النجوم والكواكب","الأصنام"], answer:2, modelAns:"الأصنام" },
+                { id:"p3_q2_5", type:"mcq", question:"٥- الطَّالِبُ الَّذِي يُذَاكِرُ جَيِّدًا ثُمَّ يَعْتَمِدُ عَلَى اللَّهِ فِي النَّتِيجَةِ ...............", options:["متوكل","متواكل","كسول"], answer:0, modelAns:"متوكل" }
+            ]},
+            { sectionTitle: "السؤال الثالث: أجب عما يلي", questions: [
+                { id:"p3_q3_1", type:"text_fill",
+                  title:"١- من هو النَّبِيُّ الَّذِي أَرْسَلَهُ اللَّهُ (تَعَالَى) إِلَى قَوْمِ مَدْيَنَ ؟",
+                  template:"هو النبي {0} عليه السلام.",
+                  blanks:[
+                    { answer:"شعيب", hint:"يبدأ بحرف الشين", choices:["شعيب", "صالح", "هود"] }
+                  ]},
+                { id:"p3_q3_2", type:"text_fill",
+                  title:"٢- في أي شهر بدأ نزول القرآن الكريم على سيدنا محمد (ﷺ) ؟",
+                  template:"بدأ نزول القرآن في شهر {0}.",
+                  blanks:[
+                    { answer:"رمضان", hint:"شهر الصيام", choices:["رمضان", "شعبان", "رجب"] }
+                  ]}
+            ]}
+        ]
+    }
+};
+
+function currentData() {
+    if (currentPart === 1) return quizData.part1;
+    if (currentPart === 2) return quizData.part2;
+    return quizData.part3;
+}
+
+function buildBlankMeta() {
+    ['part1', 'part2', 'part3'].forEach(key => {
+        quizData[key].sections.forEach(sec => {
+            sec.questions.forEach(q => {
+                if (q.type !== 'text_fill') return;
+                q.blanks.forEach((b, i) => {
+                    const id = `${q.id}_blank_${i}`;
+                    blankMeta[id] = {
+                        label: `${sec.sectionTitle} • ${q.title || q.question} • الفراغ ${i + 1}`,
+                        hint: b.hint,
+                        answer: b.answer,
+                        choices: b.choices || [b.answer, "خيار آخر ١", "خيار آخر ٢"]
+                    };
+                });
+            });
+        });
+    });
+}
+
+/* =========================================================
+   ANSWER HELPERS
+   ========================================================= */
+function hasAnswer(id) {
+    const a = writeAnswers[id];
+    return !!(a && ((a.text && a.text.trim()) || a.image));
+}
+
+function getWrite(id) {
+    if (!writeAnswers[id]) writeAnswers[id] = { text: '', strokes: [], image: null };
+    return writeAnswers[id];
+}
+
+function evalBlank(id, blank) {
+    const a = writeAnswers[id] || {};
+    const typed = (a.text || '').trim();
+
+    if (typed) {
+        const ok = normalizeArabic(typed) === normalizeArabic(blank.answer);
+        return { status: ok ? 'correct' : 'wrong', model: blank.answer, mode: 'text' };
+    }
+    if (a.image) {
+        if (manualReview[id] === true)  return { status: 'correct', model: blank.answer, mode: 'draw' };
+        if (manualReview[id] === false) return { status: 'wrong',   model: blank.answer, mode: 'draw' };
+        return { status: 'review', model: blank.answer, mode: 'draw' };
+    }
+    return { status: 'empty', model: blank.answer, mode: 'none' };
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function switchPart(partNumber) {
+    currentPart = partNumber;
+    isEvaluated = false;
+    const b1 = document.getElementById('tabPart1');
+    const b2 = document.getElementById('tabPart2');
+    const b3 = document.getElementById('tabPart3');
+
+    const activeCls = "flex-1 md:flex-none px-3 py-2.5 rounded-xl transition-all bg-emerald-600 text-white shadow-md font-black whitespace-nowrap";
+    const inactiveCls = "flex-1 md:flex-none px-3 py-2.5 rounded-xl transition-all text-emerald-800 hover:bg-emerald-100 font-black whitespace-nowrap";
+
+    b1.className = partNumber === 1 ? activeCls : inactiveCls;
+    b2.className = partNumber === 2 ? activeCls : inactiveCls;
+    b3.className = partNumber === 3 ? activeCls : inactiveCls;
+
+    renderQuiz();
+}
+
+function renderQuiz() {
+    const container = document.getElementById('quizContent');
+    const activeData = currentData();
+
+    let html = `
+        <div class="bg-gradient-to-r from-emerald-700 to-teal-700 text-white p-4 rounded-3xl shadow-md flex items-center justify-between gap-2 flex-wrap">
+            <h2 class="text-lg md:text-xl font-black">${activeData.title}</h2>
+            <span class="bg-amber-400 text-emerald-950 text-xs md:text-sm px-3.5 py-1.5 rounded-2xl font-black shadow-sm">كتابة باليد أو اختيار</span>
+        </div>`;
+
+    activeData.sections.forEach(section => {
+        html += `
+            <div class="islamic-card rounded-3xl p-5 md:p-6 space-y-5">
+                <h3 class="text-base md:text-lg font-black text-emerald-900 border-b-2 border-emerald-100 pb-3 flex items-center space-x-2 space-x-reverse">
+                    <i class="fa-solid fa-star text-amber-500 text-sm"></i>
+                    <span>${section.sectionTitle}</span>
+                </h3>
+                <div class="space-y-6">`;
+        section.questions.forEach(q => { html += renderQuestionCard(q); });
+        html += `</div></div>`;
+    });
+
+    container.innerHTML = html;
+    updateProgress();
+}
+
+function statusBadgeHTML(status, modelText) {
+    if (status === 'correct') return `
+        <div class="flex items-center gap-1.5 bg-emerald-100 border-2 border-emerald-500 text-emerald-800 text-xs md:text-sm px-3 py-1 rounded-2xl font-black">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i><span>إجابة صحيحة ممتاز! ✨</span>
+        </div>`;
+    if (status === 'pending') return `
+        <div class="flex items-center gap-1.5 bg-amber-100 border-2 border-amber-400 text-amber-800 text-xs md:text-sm px-3 py-1 rounded-2xl font-black">
+            <i class="fa-solid fa-hourglass-half text-amber-600 text-base"></i><span>راجع إجابتك اليدوية بالأسفل ⏳</span>
+        </div>`;
+    if (status === 'empty') return `
+        <div class="flex items-center gap-1.5 bg-gray-100 border-2 border-gray-300 text-gray-600 text-xs md:text-sm px-3 py-1 rounded-2xl font-black">
+            <i class="fa-regular fa-circle text-gray-500"></i><span>لم تُجب بعد</span>
+        </div>`;
+    return `
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-1 bg-red-100 border-2 border-red-400 text-red-800 text-xs md:text-sm px-3 py-1.5 rounded-2xl font-black">
+            <div class="flex items-center gap-1">
+                <i class="fa-solid fa-circle-xmark text-red-600 text-base"></i><span>تحتاج مراجعة</span>
+            </div>
+            ${modelText ? `<span class="text-gray-700 font-bold bg-white/80 px-2 py-0.5 rounded-lg border border-red-200">النموذج: ${escapeHtml(modelText)}</span>` : ''}
+        </div>`;
+}
+
+function questionBadge(q) {
+    if (!isEvaluated) return '';
+
+    if (q.type === 'text_fill') {
+        const results = q.blanks.map((b, i) => evalBlank(`${q.id}_blank_${i}`, b));
+        if (results.some(r => r.status === 'review')) return statusBadgeHTML('pending');
+        if (results.some(r => r.status === 'empty'))  return statusBadgeHTML('empty');
+        if (results.every(r => r.status === 'correct')) return statusBadgeHTML('correct');
+        const models = results.filter(r => r.status !== 'correct').map(r => r.model).join(' • ');
+        return statusBadgeHTML('wrong', models);
+    }
+
+    const chosen = choiceAnswers[q.id];
+    if (chosen === undefined) return statusBadgeHTML('empty');
+    if (chosen === q.answer)  return statusBadgeHTML('correct');
+    return statusBadgeHTML('wrong', q.modelAns);
+}
+
+function renderBlank(blankId, blank) {
+    const a = writeAnswers[blankId] || {};
+    const hasText = a.text && a.text.trim();
+    const hasImg  = !!a.image;
+
+    let cls = 'blank-btn';
+    let imgClass = 'max-h-9 max-w-[7rem] object-contain';
+
+    if (isEvaluated) {
+        const r = evalBlank(blankId, blank);
+        if (r.status === 'correct')      cls += ' correct';
+        else if (r.status === 'wrong')   cls += ' wrong';
+        else if (r.status === 'review')  cls += ' pending';
+    } else if (hasText || hasImg) {
+        cls += ' filled';
+    }
+
+    let content;
+    if (hasText)      content = `<span class="text-emerald-900 font-black text-sm md:text-base">${escapeHtml(a.text)}</span>`;
+    else if (hasImg)  content = `<img src="${a.image}" alt="إجابتك" class="${imgClass}" />`;
+    else              content = `<span class="text-emerald-500/80 text-xs font-black">✍️ اكتب / اختر</span>`;
+
+    return `<button type="button" id="blank_${blankId}" onclick="openPad('${blankId}')"
+                    class="${cls}" title="${escapeHtml(blank.hint || '')}">${content}</button>`;
+}
+
+function renderQuestionCard(q) {
+    const badge = questionBadge(q);
+
+    if (q.type === 'mcq') {
+        return `
+            <div class="bg-slate-50 p-4 md:p-5 rounded-2xl border border-gray-200 space-y-3">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <p class="font-extrabold text-gray-800 text-base md:text-lg">${q.question}</p>
+                    ${badge}
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    ${q.options.map((opt, i) => {
+                        const selected = choiceAnswers[q.id] === i;
+                        const style = selected
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                            : 'bg-white text-gray-800 border-gray-300 hover:bg-emerald-50 hover:border-emerald-400';
+                        return `
+                            <button type="button" onclick="selectOption('${q.id}', ${i})"
+                                    class="w-full py-3 px-4 rounded-2xl border-2 text-sm md:text-base font-black transition-all flex items-center justify-center gap-2 ${style}">
+                                <span class="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center text-xs">
+                                    ${selected ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </span>
+                                <span>${opt}</span>
+                            </button>`;
+                    }).join('')}
+                </div>
+            </div>`;
+    }
+
+    if (q.type === 'tf') {
+        const ans = choiceAnswers[q.id];
+        return `
+            <div class="bg-slate-50 p-4 md:p-5 rounded-2xl border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <p class="font-extrabold text-gray-800 text-base md:text-lg">${q.question}</p>
+                <div class="flex items-center gap-3 min-w-[220px]">
+                    <button type="button" onclick="selectTF('${q.id}', true)"
+                            class="flex-1 py-2.5 px-4 rounded-2xl border-2 font-black text-sm md:text-base transition-all flex items-center justify-center gap-1.5
+                            ${ans === true ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50'}">
+                        <i class="fa-solid fa-check text-lg"></i><span>صواب</span>
+                    </button>
+                    <button type="button" onclick="selectTF('${q.id}', false)"
+                            class="flex-1 py-2.5 px-4 rounded-2xl border-2 font-black text-sm md:text-base transition-all flex items-center justify-center gap-1.5
+                            ${ans === false ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-white text-red-600 border-red-300 hover:bg-red-50'}">
+                        <i class="fa-solid fa-xmark text-lg"></i><span>خطأ</span>
+                    </button>
+                </div>
+                ${badge}
+            </div>`;
+    }
+
+    if (q.type === 'text_fill') {
+        const lines = q.template.split('\n');
+        let body = '';
+
+        if (lines.length > 1) {
+            body = '<div class="space-y-3">';
+            lines.forEach(line => {
+                const parts = line.split(/\{\d\}/);
+                const idxs = [];
+                let m; const re = /\{(\d)\}/g;
+                while ((m = re.exec(line)) !== null) idxs.push(parseInt(m[1], 10));
+
+                body += `<div class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200 text-emerald-950 font-black text-base md:text-lg leading-loose flex flex-wrap items-center gap-2">`;
+                parts.forEach((p, i) => {
+                    body += `<span>${p}</span>`;
+                    if (i < idxs.length) {
+                        const bIdx = idxs[i];
+                        body += renderBlank(`${q.id}_blank_${bIdx}`, q.blanks[bIdx]);
+                    }
+                });
+                body += `</div>`;
+            });
+            body += '</div>';
+        } else {
+            const parts = q.template.split(/\{\d\}/);
+            body = `<div class="quran-text text-lg md:text-xl text-emerald-950 font-black text-center bg-amber-50/80 p-5 rounded-3xl border-2 border-amber-200 leading-loose">`;
+            parts.forEach((p, i) => {
+                body += `<span>${p}</span>`;
+                if (i < q.blanks.length) body += renderBlank(`${q.id}_blank_${i}`, q.blanks[i]);
+            });
+            body += `</div>`;
+        }
+
+        return `
+            <div class="space-y-3 bg-slate-50 p-4 md:p-5 rounded-3xl border border-gray-200">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 class="font-black text-emerald-900 text-sm md:text-base flex items-center gap-2">
+                        <i class="fa-solid fa-pen-nib text-amber-500"></i><span>${q.title || q.question}</span>
+                    </h4>
+                    ${badge}
+                </div>
+                ${body}
+            </div>`;
+    }
+    return '';
+}
+
+/* =========================================================
+   CHOICE HANDLERS
+   ========================================================= */
+function selectOption(qId, idx) {
+    choiceAnswers[qId] = idx;
+    playSound('click');
+    renderQuiz();
+}
+
+function selectTF(qId, value) {
+    choiceAnswers[qId] = value;
+    playSound('click');
+    renderQuiz();
+}
+
+/* =========================================================
+   ANSWER MODAL & DRAWING PAD
+   ========================================================= */
+let padTargetId = null;
+let padStrokes  = [];
+let padTool     = 'pen';
+let isDrawing   = false;
+let activeAnswerTab = 'write';
+
+const PEN_COLOR = '#0f766e';
+const PEN_WIDTH = 4;
+const ERASER_WIDTH = 22;
+
+function switchAnswerTab(tab) {
+    activeAnswerTab = tab;
+    document.getElementById('tabWrite').classList.toggle('active', tab === 'write');
+    document.getElementById('tabChoose').classList.toggle('active', tab === 'choose');
+    document.getElementById('writeArea').classList.toggle('hidden', tab === 'choose');
+    document.getElementById('chooseArea').classList.toggle('hidden', tab === 'write');
+}
+
+function openPad(blankId) {
+    padTargetId = blankId;
+    const a = writeAnswers[blankId] || { text: '', strokes: [], image: null };
+
+    // Reset to 'write' tab by default to encourage handwriting
+    switchAnswerTab('write');
+
+    padStrokes = JSON.parse(JSON.stringify(a.strokes || []));
+    padTool = 'pen';
+    setPadTool('pen');
+
+    document.getElementById('padTextInput').value = a.text || '';
+
+    const meta = blankMeta[blankId];
+    
+    // Set Hint
+    const hintEl = document.getElementById('padHint');
+    if (meta && meta.hint) {
+        hintEl.innerHTML = `<i class="fa-solid fa-lightbulb"></i> تلميح: ${escapeHtml(meta.hint)}`;
+        hintEl.classList.remove('hidden');
+    } else {
+        hintEl.classList.add('hidden');
+    }
+
+    // Populate Choices
+    const choicesContainer = document.getElementById('padChoicesContainer');
+    if (meta && meta.choices) {
+        choicesContainer.innerHTML = meta.choices.map(choice => {
+            const isSelected = (a.text === choice);
+            return `
+                <button type="button" onclick="selectPadChoice('${escapeHtml(choice).replace(/'/g, "\\'")}')" 
+                        class="w-full py-3 px-4 rounded-xl border-2 font-black text-base transition-all flex items-center justify-center gap-2
+                        ${isSelected ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-gray-800 border-gray-300 hover:bg-emerald-50 hover:border-emerald-400'}">
+                    <span>${escapeHtml(choice)}</span>
+                </button>
+            `;
+        }).join('');
+    } else {
+        choicesContainer.innerHTML = '<p class="text-center text-gray-500 font-bold">لا توجد خيارات متاحة لهذا السؤال.</p>';
+    }
+
+    const modal = document.getElementById('answerModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+
+    requestAnimationFrame(() => { setupCanvas(); redrawPad(); });
+}
+
+function selectPadChoice(choiceText) {
+    if (!padTargetId) return;
+    
+    // Save choice as text
+    const a = getWrite(padTargetId);
+    a.text = choiceText;
+    a.strokes = [];
+    a.image = null;
+    delete manualReview[padTargetId];
+
+    playSound('click');
+    closePad();
+    renderQuiz();
+}
+
+function closePad() {
+    const modal = document.getElementById('answerModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+    padTargetId = null;
+}
+
+function setPadTool(tool) {
+    padTool = tool;
+    document.querySelectorAll('.pad-tool[data-tool]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === tool);
+    });
+}
+
+function setupCanvas() {
+    const c = document.getElementById('padCanvas');
+    const rect = c.getBoundingClientRect();
+    if (!rect.width) return;
+    const dpr = window.devicePixelRatio || 1;
+
+    c.width  = Math.round(rect.width * dpr);
+    c.height = Math.round(rect.height * dpr);
+
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+}
+
+function padPos(evt, canvas) {
+    const r = canvas.getBoundingClientRect();
+    return { x: evt.clientX - r.left, y: evt.clientY - r.top };
+}
+
+function strokeStyleFor(ctx, stroke) {
+    ctx.strokeStyle = stroke.tool === 'eraser' ? '#ffffff' : PEN_COLOR;
+    ctx.lineWidth   = stroke.tool === 'eraser' ? ERASER_WIDTH : PEN_WIDTH;
+}
+
+function drawWholeStroke(ctx, stroke) {
+    if (!stroke.points.length) return;
+    strokeStyleFor(ctx, stroke);
+    ctx.beginPath();
+    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    if (stroke.points.length === 1) {
+        ctx.lineTo(stroke.points[0].x + 0.1, stroke.points[0].y + 0.1);
+    } else {
+        for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+    ctx.stroke();
+}
+
+function redrawPad() {
+    const c = document.getElementById('padCanvas');
+    const ctx = c.getContext('2d');
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.restore();
+    padStrokes.forEach(s => drawWholeStroke(ctx, s));
+    updatePadPlaceholder();
+}
+
+function updatePadPlaceholder() {
+    document.getElementById('padPlaceholder').style.display = padStrokes.length ? 'none' : 'flex';
+}
+
+function padDown(e) {
+    if (!padTargetId || activeAnswerTab !== 'write') return;
+    e.preventDefault();
+    const canvas = e.currentTarget;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+
+    isDrawing = true;
+    const p = padPos(e, canvas);
+    const stroke = { tool: padTool, points: [p] };
+    padStrokes.push(stroke);
+
+    const ctx = canvas.getContext('2d');
+    drawWholeStroke(ctx, stroke);
+    updatePadPlaceholder();
+}
+
+function padMove(e) {
+    if (!isDrawing || activeAnswerTab !== 'write') return;
+    e.preventDefault();
+    const canvas = e.currentTarget;
+    const ctx = canvas.getContext('2d');
+    const stroke = padStrokes[padStrokes.length - 1];
+    if (!stroke) return;
+
+    const p = padPos(e, canvas);
+    const prev = stroke.points[stroke.points.length - 1];
+    stroke.points.push(p);
+
+    strokeStyleFor(ctx, stroke);
+    ctx.beginPath();
+    ctx.moveTo(prev.x, prev.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+}
+
+function padUp() { isDrawing = false; }
+
+function undoStroke() {
+    if (!padStrokes.length) return;
+    padStrokes.pop();
+    redrawPad();
+}
+
+function clearPad() {
+    padStrokes = [];
+    redrawPad();
+}
+
+function savePad() {
+    if (!padTargetId) return;
+    const id = padTargetId;
+    const canvas = document.getElementById('padCanvas');
+    const text = document.getElementById('padTextInput').value.trim();
+
+    const a = getWrite(id);
+    
+    // If they typed or drew, we prioritize that over choice.
+    a.text = text;
+    a.strokes = JSON.parse(JSON.stringify(padStrokes));
+    a.image = padStrokes.length ? canvas.toDataURL('image/png') : null;
+
+    delete manualReview[id];
+
+    playSound('click');
+    closePad();
+    renderQuiz();
+}
+
+/* =========================================================
+   PROGRESS & SCORING
+   ========================================================= */
+function getTotalQuestions() {
+    let count = 0;
+    currentData().sections.forEach(sec => sec.questions.forEach(q => {
+        if (q.type === 'text_fill') count += q.blanks.length;
+        else count++;
+    }));
+    return count;
+}
+
+function getAnsweredCount() {
+    let answered = 0;
+    currentData().sections.forEach(sec => sec.questions.forEach(q => {
+        if (q.type === 'text_fill') {
+            q.blanks.forEach((b, i) => { if (hasAnswer(`${q.id}_blank_${i}`)) answered++; });
+        } else if (choiceAnswers[q.id] !== undefined) {
+            answered++;
+        }
+    }));
+    return answered;
+}
+
+function updateProgress() {
+    const total = getTotalQuestions();
+    const answered = getAnsweredCount();
+    const percent = total ? Math.round((answered / total) * 100) : 0;
+
+    document.getElementById('answeredCount').innerText = answered;
+    document.getElementById('totalQuestionsCount').innerText = total;
+    document.getElementById('quizProgressBar').style.width = percent + '%';
+}
+
+function computeResults() {
+    const active = currentData();
+    let total = 0, max = 0, pending = 0;
+    const sections = [];
+
+    active.sections.forEach(sec => {
+        let s = 0, m = 0;
+
+        sec.questions.forEach(q => {
+            if (q.type === 'text_fill') {
+                q.blanks.forEach((b, i) => {
+                    m++;
+                    const r = evalBlank(`${q.id}_blank_${i}`, b);
+                    if (r.status === 'correct') s++;
+                    if (r.status === 'review')  pending++;
+                });
+            } else {
+                m++;
+                if (choiceAnswers[q.id] === q.answer) s++;
+            }
+        });
+
+        total += s; max += m;
+        sections.push({ title: sec.sectionTitle, score: s, max: m });
+    });
+
+    const percent = max ? Math.round((total / max) * 100) : 0;
+    return { total, max, percent, sections, pending };
+}
+
+function calculateScore() {
+    const unanswered = getTotalQuestions() - getAnsweredCount();
+    if (unanswered > 0) {
+        const ok = confirm(`لديك ${unanswered} سؤال/فراغ بدون إجابة.\nهل تريد التصحيح الآن؟`);
+        if (!ok) return;
+    }
+
+    isEvaluated = true;
+    celebrated = false;
+    renderQuiz();
+
+    lastResults = computeResults();
+    populateResults(lastResults);
+
+    const modal = document.getElementById('resultModal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    if (lastResults.percent >= 90 && lastResults.pending === 0) {
+        playSound('fanfare');
+        triggerConfetti();
+        celebrated = true;
+    } else if (lastResults.percent >= 75) {
+        playSound('correct');
+    } else {
+        playSound('incorrect');
+    }
+}
+
+function populateResults(res) {
+    document.getElementById('scorePercentage').innerText   = res.percent + '%';
+    document.getElementById('correctScoreCount').innerText = res.total;
+    document.getElementById('maxScoreCount').innerText     = res.max;
+
+    document.getElementById('sectionBreakdown').innerHTML = res.sections.map(s => `
+        <div class="flex items-center justify-between font-black border-b border-emerald-200 pb-1.5">
+            <span class="text-emerald-900">${s.title}:</span>
+            <span class="${s.score === s.max ? 'text-emerald-700' : 'text-amber-700'}">${s.score} / ${s.max}</span>
+        </div>`).join('');
+
+    const feedback = document.getElementById('feedbackText');
+    const icon = document.getElementById('badgeIcon');
+
+    if (res.pending > 0) {
+        feedback.innerText = "أحسنت! بقي أن تراجع إجاباتك المكتوبة باليد بالأسفل وتقارنها بالنموذج ✍️";
+        feedback.className = "mt-3 text-sm md:text-base font-black text-amber-900 bg-amber-100 py-3 px-4 rounded-2xl shadow-sm";
+        icon.className = "fa-solid fa-pen-fancy text-6xl text-amber-500";
+    } else if (res.percent >= 90) {
+        feedback.innerText = "ما شاء الله! أنت بطل متفوق وخطك وإجاباتك ممتازة جداً 🌟🎉";
+        feedback.className = "mt-3 text-sm md:text-base font-black text-emerald-900 bg-emerald-100 py-3 px-4 rounded-2xl shadow-sm";
+        icon.className = "fa-solid fa-trophy text-6xl text-amber-500 animate-bounce";
+    } else if (res.percent >= 75) {
+        feedback.innerText = "عمل رائع يا بطل! راجع الكلمات المكتوبة بالأحمر لتصبح إجاباتك 100% 👏";
+        feedback.className = "mt-3 text-sm md:text-base font-black text-blue-900 bg-blue-100 py-3 px-4 rounded-2xl shadow-sm";
+        icon.className = "fa-solid fa-medal text-6xl text-blue-500";
+    } else {
+        feedback.innerText = "محاولة جيدة! راجع الآيات والأحاديث المكتوبة بالأحمر وأعد الكتابة مرة أخرى 💪";
+        feedback.className = "mt-3 text-sm md:text-base font-black text-amber-900 bg-amber-100 py-3 px-4 rounded-2xl shadow-sm";
+        icon.className = "fa-solid fa-book-bookmark text-6xl text-amber-600";
+    }
+
+    renderManualReview();
+}
+
+function renderManualReview() {
+    const wrap = document.getElementById('manualReviewSection');
+    const list = document.getElementById('manualReviewList');
+    const items = [];
+
+    currentData().sections.forEach(sec => sec.questions.forEach(q => {
+        if (q.type !== 'text_fill') return;
+        q.blanks.forEach((b, i) => {
+            const id = `${q.id}_blank_${i}`;
+            const a = writeAnswers[id];
+            if (a && a.image && !(a.text && a.text.trim())) {
+                items.push({ id, model: b.answer, img: a.image, label: blankMeta[id]?.label || '' });
+            }
+        });
+    }));
+
+    if (!items.length) {
+        wrap.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+    }
+    wrap.classList.remove('hidden');
+
+    list.innerHTML = items.map(it => {
+        const state = manualReview[it.id];
+        return `
+            <div class="bg-white rounded-2xl border-2 border-amber-200 p-2.5">
+                <div class="text-[11px] font-black text-gray-500 mb-1 leading-tight">${escapeHtml(it.label)}</div>
+                <div class="flex items-center gap-2">
+                    <img src="${it.img}" alt="إجابة الطالب" class="h-14 max-w-[45%] object-contain border border-gray-200 rounded-lg bg-white" />
+                    <div class="text-sm font-black text-emerald-800">
+                        النموذج: <span class="bg-emerald-100 px-2 py-0.5 rounded-lg">${escapeHtml(it.model)}</span>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="setManual('${it.id}', true)"
+                            class="flex-1 py-1.5 rounded-xl font-black text-xs border-2 border-emerald-400
+                            ${state === true ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700'}">
+                        ✔️ إجابتي مطابقة
+                    </button>
+                    <button onclick="setManual('${it.id}', false)"
+                            class="flex-1 py-1.5 rounded-xl font-black text-xs border-2 border-red-300
+                            ${state === false ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}">
+                        ❌ غير مطابقة
+                    </button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function setManual(id, value) {
+    manualReview[id] = value;
+    playSound(value ? 'click' : 'click');
+
+    renderQuiz();                      
+    lastResults = computeResults();
+    populateResults(lastResults);      
+
+    if (lastResults.percent >= 90 && lastResults.pending === 0 && !celebrated) {
+        celebrated = true;
+        playSound('fanfare');
+        triggerConfetti();
+    }
+}
+
+/* =========================================================
+   MISC UI
+   ========================================================= */
+function triggerConfetti() {
+    if (typeof confetti !== 'function') return;
+    confetti({ particleCount: 140, spread: 90, origin: { y: 0.6 } });
+}
+
+function closeModal() {
+    document.getElementById('resultModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    window.scrollTo({ top: 300, behavior: 'smooth' });
+}
+
+function resetQuiz() {
+    choiceAnswers = {};
+    writeAnswers = {};
+    manualReview = {};
+    isEvaluated = false;
+    celebrated = false;
+    renderQuiz();
+}
+
+function confirmReset() {
+    if (confirm("هل تريد إعادة تشغيل الاختبار ومسح إجاباتك؟")) resetQuiz();
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+window.addEventListener('DOMContentLoaded', () => {
+    buildBlankMeta();
+    renderQuiz();
+
+    const canvas = document.getElementById('padCanvas');
+    canvas.addEventListener('pointerdown', padDown);
+    canvas.addEventListener('pointermove', padMove);
+    canvas.addEventListener('pointerup', padUp);
+    canvas.addEventListener('pointercancel', padUp);
+    canvas.addEventListener('pointerleave', padUp);
+
+    document.getElementById('padTextInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); savePad(); }
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !document.getElementById('answerModal').classList.contains('hidden')) closePad();
+    });
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        if (document.getElementById('answerModal').classList.contains('hidden')) return;
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => { setupCanvas(); redrawPad(); }, 150);
+    });
+
+    window.addEventListener('beforeunload', e => {
+        if (getAnsweredCount() > 0 && !isEvaluated) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+});
+</script>
+</body>
+</html>
